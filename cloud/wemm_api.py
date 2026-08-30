@@ -10,14 +10,15 @@ from __future__ import annotations
 
 import base64
 import binascii
+import asyncio
 import json
 import os
 import subprocess
 import tempfile
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
-from threading import Lock
-from typing import Literal
+from threading import Condition
+from typing import Iterator, Literal
 
 import torch
 import torch.nn.functional as F
@@ -39,7 +40,38 @@ API_KEY = os.getenv("RADAR_API_KEY", "")
 
 model = None
 processor = None
-inference_lock = Lock()
+
+
+class PriorityInferenceGate:
+    """Serialize GPU work while letting interactive searches jump the queue."""
+
+    def __init__(self) -> None:
+        self._condition = Condition()
+        self._active = False
+        self._interactive_waiting = 0
+
+    @contextmanager
+    def slot(self, priority: str) -> Iterator[None]:
+        interactive = priority == "interactive"
+        with self._condition:
+            if interactive:
+                self._interactive_waiting += 1
+            try:
+                while self._active or (not interactive and self._interactive_waiting > 0):
+                    self._condition.wait()
+                self._active = True
+            finally:
+                if interactive:
+                    self._interactive_waiting -= 1
+        try:
+            yield
+        finally:
+            with self._condition:
+                self._active = False
+                self._condition.notify_all()
+
+
+inference_gate = PriorityInferenceGate()
 
 
 class EmbedInput(BaseModel):
@@ -52,6 +84,7 @@ class EmbedInput(BaseModel):
 class EmbedRequest(BaseModel):
     inputs: list[EmbedInput] = Field(min_length=1, max_length=16)
     dimension: int = 256
+    priority: Literal["interactive", "background"] = "interactive"
 
 
 def require_key(authorization: str | None = Header(default=None)) -> None:
@@ -136,6 +169,13 @@ def encode_one(kind: str, value: str, dimension: int) -> list[float]:
     return embedding[0].detach().float().cpu().tolist()
 
 
+def encode_with_priority(
+    kind: str, value: str, dimension: int, priority: str
+) -> list[float]:
+    with inference_gate.slot(priority):
+        return encode_one(kind, value, dimension)
+
+
 def probe_video_duration(path: Path) -> float:
     command = [
         "ffprobe", "-v", "error", "-show_entries", "format=duration",
@@ -216,7 +256,7 @@ async def lifespan(_: FastAPI):
         torch.cuda.empty_cache()
 
 
-app = FastAPI(title="素材雷达 WeMM API", version="0.3.0", lifespan=lifespan)
+app = FastAPI(title="素材雷达 WeMM API", version="0.4.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -236,6 +276,7 @@ def health() -> dict[str, object]:
         "gpu": gpu,
         "lowVram": LOW_VRAM,
         "videoMaxFrames": VIDEO_MAX_FRAMES,
+        "priorityScheduling": True,
     }
 
 
@@ -272,7 +313,7 @@ def embed(request: EmbedRequest) -> dict[str, object]:
             temporary_paths.append(path)
             samples.append((item.kind, str(path)))
 
-        with inference_lock:
+        with inference_gate.slot(request.priority):
             embeddings = [
                 encode_one(kind, value, request.dimension) for kind, value in samples
             ]
@@ -302,6 +343,7 @@ async def index_video(
     segment_seconds: float = 6.0,
     overlap_seconds: float = 1.0,
     max_segments: int = 0,
+    priority: Literal["interactive", "background"] = "background",
 ) -> dict[str, object]:
     if model is None:
         raise HTTPException(status_code=503, detail="Model is still loading")
@@ -331,18 +373,31 @@ async def index_video(
         plan = plan_video_segments(duration, segment_seconds, overlap_seconds, max_segments)
         segments: list[dict[str, object]] = []
         for start, end in plan:
+            if await request.is_disconnected():
+                raise HTTPException(status_code=499, detail="Client cancelled video indexing")
             with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as handle:
                 segment_path = Path(handle.name)
             segment_paths.append(segment_path)
-            transcode_video_segment(source_path, segment_path, start, end)
-            with inference_lock:
-                vector = encode_one("video", str(segment_path), dimension)
+            await asyncio.to_thread(
+                transcode_video_segment, source_path, segment_path, start, end
+            )
+            vector = await asyncio.to_thread(
+                encode_with_priority,
+                "video",
+                str(segment_path),
+                dimension,
+                priority,
+            )
             segments.append({
                 "start": start,
                 "end": end,
                 "time": (start + end) / 2,
                 "embedding": vector,
             })
+            segment_path.unlink(missing_ok=True)
+            segment_paths.remove(segment_path)
+            # Give the event loop a chance to accept an interactive /embed request.
+            await asyncio.sleep(0)
 
         return {
             "model": MODEL_ID,
@@ -354,6 +409,7 @@ async def index_video(
                 "overlapSeconds": overlap_seconds,
                 "maxSegments": max_segments,
                 "videoMaxFramesPerSegment": VIDEO_MAX_FRAMES,
+                "priority": priority,
             },
         }
     except HTTPException:

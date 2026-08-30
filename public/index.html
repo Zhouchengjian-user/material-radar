@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0b0d0b" />
   <meta name="description" content="用文字、图片和视频片段检索本地创意素材。" />
   <title>素材雷达</title>
-  <link rel="stylesheet" href="./styles.css?v=6" />
+  <link rel="stylesheet" href="./styles.css?v=14" />
 </head>
 <body>
   <a class="skip-link" href="#main">跳到检索区</a>
@@ -132,28 +132,37 @@
         <div class="service-test-row"><div class="connection-result" id="mediaConnectionResult" role="status">尚未测试媒体服务</div><button class="secondary-button service-test-button" type="button" id="testMediaConnectionButton">测试媒体服务</button></div>
       </section>
 
+      <fieldset class="analysis-profile-picker">
+        <legend>视频分析精度</legend>
+        <div class="profile-options">
+          <label class="profile-option"><input type="radio" name="analysisProfile" value="smart_precision" checked /><span><strong>智能精细</strong><small>推荐。动态抽帧、每秒约 2 次文字检查，并提取视频字幕轨。</small></span><em>1 至 3 秒定位</em></label>
+          <label class="profile-option"><input type="radio" name="analysisProfile" value="fast" /><span><strong>快速分析</strong><small>每个镜头取代表帧，适合先整理大批量素材。</small></span><em>约 5 至 8 秒</em></label>
+        </div>
+        <p id="analysisProfileHint">智能精细会根据画面变化自动增加或减少采样，不会机械地逐帧识别。</p>
+      </fieldset>
+
       <label>API 密钥 <span>两项服务共用，保存在当前浏览器</span><input id="apiKeyInput" type="password" autocomplete="off" /></label>
       <div class="settings-grid">
         <label>向量维度<select id="dimensionInput"><option value="256">256，推荐</option><option value="512">512</option><option value="1024">1024</option><option value="2048">2048</option></select></label>
         <label>相邻片段重叠<select id="overlapSecondsInput"><option value="0">不重叠</option><option value="1">1 秒，推荐</option><option value="2">2 秒</option></select></label>
       </div>
       <div class="segment-setting"><label for="segmentSecondsInput">切镜回退长度 <strong id="segmentSecondsValue">6 秒</strong></label><input id="segmentSecondsInput" type="range" min="5" max="8" step="1" value="6" /><div><span>更精准</span><span>更快</span></div></div>
-      <p class="dialog-note">媒体分析在线时优先按真实镜头边界切分，并把台词和画面文字加入检索。检测不到转场或服务离线时，自动回退到 5 至 8 秒切片。</p>
+      <p class="dialog-note">新版媒体服务会返回分析凭证，让你确认切镜、语音、OCR 和字幕轨是否真的完成。旧版 8001 仍可兼容，但会明确标为“旧版兼容模式”。</p>
       <div class="dialog-actions"><button class="secondary-button" type="button" id="testAllConnectionsButton">测试全部服务</button><button class="primary-button" value="save" id="saveSettingsButton">保存并应用</button></div>
     </form>
   </dialog>
-  <dialog id="taskDialog" class="task-dialog">
+  <dialog id="taskDialog" class="task-dialog" aria-labelledby="taskDialogTitle" aria-describedby="taskDialogDescription">
     <div class="task-dialog-shell">
-      <div class="dialog-heading"><div><h2>视频分析任务</h2><p>这里同时显示拯救者当前正在处理的任务，以及当前浏览器素材的完整分析状态。</p></div><button class="icon-button" id="closeTaskDialogButton" type="button" aria-label="关闭"><svg><use href="#i-close"/></svg></button></div>
-      <section class="remote-task-card" id="remoteTaskPanel" aria-live="polite"></section>
+      <div class="dialog-heading"><div><h2 id="taskDialogTitle">视频分析任务</h2><p id="taskDialogDescription">长视频按约 2.5 分钟一块处理。每块完成立即保存，失败只重试对应分块。</p></div><button class="icon-button" id="closeTaskDialogButton" type="button" aria-label="关闭"><svg><use href="#i-close"/></svg></button></div>
+      <section class="remote-task-card" id="remoteTaskPanel"></section>
       <section class="local-task-section">
-        <div class="section-heading-inline"><div><h3>本地素材进度</h3><p>“完整”表示镜头、语音、OCR 和向量均已写入；“部分”表示只能按画面搜索。</p></div><span id="localTaskSummary">0 个视频</span></div>
+        <div class="section-heading-inline"><div><h3>本地素材进度</h3><p>镜头、语音、OCR 和向量分别显示进度；8000 暂时离线也不会清掉已保存的媒体结果。</p></div><span id="localTaskSummary">0 个视频</span></div>
         <div class="local-task-list" id="localTaskList"></div>
       </section>
       <div class="task-dialog-actions"><p id="taskLastUpdated">尚未读取任务状态</p><button class="secondary-button" id="refreshTaskStatusButton" type="button"><svg><use href="#i-refresh"/></svg>刷新状态</button></div>
     </div>
   </dialog>
   <div class="toast-stack" id="toastStack" aria-live="assertive"></div>
-  <script type="module" src="./app.js?v=6"></script>
+  <script type="module" src="./app.js?v=15"></script>
 </body>
 </html>

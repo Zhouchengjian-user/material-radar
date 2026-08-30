@@ -7,4 +7,17 @@ node_modules/
 .radar_legion_key
 __pycache__/
 *.py[cod]
+.venv/
+venv/
+*.safetensors
+*.pt
+*.pth
+*.onnx
+*.gguf
+*.sqlite
+*.sqlite3
+models/
+checkpoints/
+runtime/
+uploads/
 outputs/*.zip

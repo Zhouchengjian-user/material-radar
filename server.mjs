@@ -62,8 +62,8 @@ function resolveModelUrl(endpoint, pathname) {
 function resolveMediaUrl(endpoint, pathname) {
   const parsed = new URL(endpoint);
   if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("媒体服务地址必须以 http 或 https 开头");
-  if (parsed.pathname.endsWith("/health") || parsed.pathname.endsWith("/analyze-video") || parsed.pathname.endsWith("/task-status")) {
-    parsed.pathname = parsed.pathname.replace(/\/(health|analyze-video|task-status)$/, "");
+  if (["/health", "/analyze-video", "/analyze-image", "/task-status", "/analyze-video/start", "/task-result", "/retry-chunk"].some((suffix) => parsed.pathname.endsWith(suffix))) {
+    parsed.pathname = parsed.pathname.replace(/\/(health|analyze-video|analyze-image|task-status|task-result|retry-chunk)$/, "").replace(/\/analyze-video\/start$/, "");
   }
   parsed.pathname = `${parsed.pathname.replace(/\/$/, "")}${pathname}`;
   return parsed;
@@ -84,7 +84,7 @@ async function proxyEmbedding(request, response) {
         "content-type": "application/json",
         ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {})
       },
-      body: JSON.stringify({ inputs: body.inputs || [], dimension: body.dimension || 256 }),
+      body: JSON.stringify({ inputs: body.inputs || [], dimension: body.dimension || 256, priority: body.priority === "background" ? "background" : "interactive" }),
       signal: controller.signal
     });
     clearTimeout(timeout);
@@ -136,7 +136,7 @@ async function proxyVideoIndex(request, response) {
 
     const incoming = new URL(request.url, `http://${request.headers.host || "localhost"}`);
     const target = resolveModelUrl(endpoint, "/index-video");
-    for (const key of ["dimension", "segment_seconds", "overlap_seconds", "max_segments"]) {
+    for (const key of ["dimension", "segment_seconds", "overlap_seconds", "max_segments", "priority"]) {
       if (incoming.searchParams.has(key)) target.searchParams.set(key, incoming.searchParams.get(key));
     }
     const controller = new AbortController();
@@ -198,6 +198,7 @@ async function proxyMediaTaskStatus(request, response) {
     const apiKey = String(body.apiKey || defaultKey).trim();
     if (!endpoint) return json(response, 400, { error: "还没有填写媒体分析服务地址" });
     const target = resolveMediaUrl(endpoint, "/task-status");
+    if (body.taskId) target.searchParams.set("task_id", String(body.taskId));
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
     const upstream = await fetch(target, {
@@ -215,6 +216,69 @@ async function proxyMediaTaskStatus(request, response) {
   } catch (error) {
     json(response, 502, { error: error.name === "AbortError" ? "媒体任务状态查询超时" : error.message });
   }
+}
+
+async function proxyChunkedMediaStart(request, response) {
+  try {
+    const endpoint = String(request.headers["x-radar-media-endpoint"] || defaultMediaEndpoint).trim();
+    const apiKey = String(request.headers["x-radar-api-key"] || defaultKey).trim();
+    if (!endpoint) return json(response, 400, { error: "还没有填写媒体分析服务地址" });
+    const contentLength = Number(request.headers["content-length"] || 0);
+    if (contentLength > 2 * 1024 * 1024 * 1024) return json(response, 413, { error: "长视频最大支持 2GB" });
+    const target = resolveMediaUrl(endpoint, "/analyze-video/start");
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15 * 60 * 1000);
+    const upstream = await fetch(target, {
+      method: "POST",
+      headers: {
+        "content-type": request.headers["content-type"] || "application/octet-stream",
+        ...(contentLength ? { "content-length": String(contentLength) } : {}),
+        ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {})
+      },
+      body: request,
+      duplex: "half",
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    const text = await upstream.text();
+    response.writeHead(upstream.status, {
+      "content-type": upstream.headers.get("content-type") || "application/json; charset=utf-8",
+      "cache-control": "no-store",
+      "access-control-allow-origin": "*"
+    });
+    response.end(text);
+  } catch (error) {
+    json(response, 502, { error: error.name === "AbortError" ? "长视频上传或任务创建超时" : error.message });
+  }
+}
+
+async function proxyMediaTaskResult(request, response) {
+  try {
+    const body = await readJson(request, 64 * 1024);
+    const endpoint = String(body.endpoint || defaultMediaEndpoint).trim();
+    const apiKey = String(body.apiKey || defaultKey).trim();
+    if (!endpoint || !body.taskId || !Number.isInteger(Number(body.chunkIndex))) return json(response, 400, { error: "缺少媒体地址、任务 ID 或分块编号" });
+    const target = resolveMediaUrl(endpoint, "/task-result");
+    target.searchParams.set("task_id", String(body.taskId)); target.searchParams.set("chunk_index", String(body.chunkIndex));
+    const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 30000);
+    const upstream = await fetch(target, { headers: apiKey ? { authorization: `Bearer ${apiKey}` } : {}, signal: controller.signal });
+    clearTimeout(timeout); const text = await upstream.text();
+    response.writeHead(upstream.status, { "content-type": upstream.headers.get("content-type") || "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" }); response.end(text);
+  } catch (error) { json(response, 502, { error: error.name === "AbortError" ? "分块结果读取超时" : error.message }); }
+}
+
+async function proxyMediaChunkRetry(request, response) {
+  try {
+    const body = await readJson(request, 64 * 1024);
+    const endpoint = String(body.endpoint || defaultMediaEndpoint).trim();
+    const apiKey = String(body.apiKey || defaultKey).trim();
+    if (!endpoint || !body.taskId || !Number.isInteger(Number(body.chunkIndex))) return json(response, 400, { error: "缺少媒体地址、任务 ID 或分块编号" });
+    const target = resolveMediaUrl(endpoint, "/retry-chunk");
+    const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 30000);
+    const upstream = await fetch(target, { method: "POST", headers: { "content-type": "application/json", ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {}) }, body: JSON.stringify({ task_id: body.taskId, chunk_index: Number(body.chunkIndex) }), signal: controller.signal });
+    clearTimeout(timeout);
+    const text = await upstream.text(); response.writeHead(upstream.status, { "content-type": upstream.headers.get("content-type") || "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" }); response.end(text);
+  } catch (error) { json(response, 502, { error: error.name === "AbortError" ? "单块重试请求超时" : error.message }); }
 }
 
 async function proxyMediaAnalysis(request, response) {
@@ -249,6 +313,40 @@ async function proxyMediaAnalysis(request, response) {
     response.end(text);
   } catch (error) {
     json(response, 502, { error: error.name === "AbortError" ? "媒体分析任务超时" : error.message });
+  }
+}
+
+async function proxyImageAnalysis(request, response) {
+  try {
+    const endpoint = String(request.headers["x-radar-media-endpoint"] || defaultMediaEndpoint).trim();
+    const apiKey = String(request.headers["x-radar-api-key"] || defaultKey).trim();
+    if (!endpoint) return json(response, 400, { error: "还没有填写媒体分析服务地址" });
+    const contentLength = Number(request.headers["content-length"] || 0);
+    if (contentLength > 80 * 1024 * 1024) return json(response, 413, { error: "单张图片最大支持 80MB" });
+    const target = resolveMediaUrl(endpoint, "/analyze-image");
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5 * 60 * 1000);
+    const upstream = await fetch(target, {
+      method: "POST",
+      headers: {
+        "content-type": request.headers["content-type"] || "application/octet-stream",
+        ...(contentLength ? { "content-length": String(contentLength) } : {}),
+        ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {})
+      },
+      body: request,
+      duplex: "half",
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    const text = await upstream.text();
+    response.writeHead(upstream.status, {
+      "content-type": upstream.headers.get("content-type") || "application/json; charset=utf-8",
+      "cache-control": "no-store",
+      "access-control-allow-origin": "*"
+    });
+    response.end(text);
+  } catch (error) {
+    json(response, 502, { error: error.name === "AbortError" ? "图片文字识别超时" : error.message });
   }
 }
 
@@ -313,8 +411,20 @@ const server = http.createServer(async (request, response) => {
   if (request.url === "/api/media/task-status" && request.method === "POST") {
     return proxyMediaTaskStatus(request, response);
   }
-  if (request.url?.startsWith("/api/media/analyze-video") && request.method === "POST") {
+  if (request.url?.startsWith("/api/media/analyze-video/start") && request.method === "POST") {
+    return proxyChunkedMediaStart(request, response);
+  }
+  if (request.url === "/api/media/analyze-video" && request.method === "POST") {
     return proxyMediaAnalysis(request, response);
+  }
+  if (request.url?.startsWith("/api/media/analyze-image") && request.method === "POST") {
+    return proxyImageAnalysis(request, response);
+  }
+  if (request.url === "/api/media/task-result" && request.method === "POST") {
+    return proxyMediaTaskResult(request, response);
+  }
+  if (request.url === "/api/media/retry-chunk" && request.method === "POST") {
+    return proxyMediaChunkRetry(request, response);
   }
   if (request.url === "/api/import/expand" && request.method === "POST") {
     return expandImportFile(request, response);

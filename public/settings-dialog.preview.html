@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>模型服务设置组件状态预览</title>
+  <link rel="stylesheet" href="./styles.css?v=5" />
+  <style>
+    /* finesse · component: model-service-settings · register=product
+     * states: default · hover · focus-visible · active · disabled · loading · error · success
+     * tokens: inherited (public/styles.css) */
+    .preview-page { min-height: 100dvh; display: grid; place-items: center; padding: 24px; }
+    .preview-dialog { position: static; display: block; margin: 0; }
+    .preview-dialog::backdrop { display: none; }
+    .preview-states { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 8px 12px; align-items: center; }
+    .preview-states > span { color: var(--ink-3); font: 9px/1 var(--font-mono); }
+    .preview-states button { justify-self: start; min-width: 150px; }
+  </style>
+</head>
+<body class="preview-page">
+  <dialog class="settings-dialog preview-dialog" open>
+    <form>
+      <div class="dialog-heading"><div><h2>服务测试按钮</h2><p>开发预览文件，用于同时检查组件的八种交互状态。</p></div></div>
+      <div class="preview-states">
+        <span>default</span><button class="secondary-button" type="button">测试媒体服务</button>
+        <span>hover</span><button class="secondary-button is-hover" type="button">测试媒体服务</button>
+        <span>focus</span><button class="secondary-button is-focus" type="button">测试媒体服务</button>
+        <span>active</span><button class="secondary-button is-active" type="button">测试媒体服务</button>
+        <span>disabled</span><button class="secondary-button" type="button" disabled>测试媒体服务</button>
+        <span>loading</span><button class="secondary-button is-loading" type="button" disabled>正在测试</button>
+        <span>error</span><button class="secondary-button is-error" type="button">重新测试</button>
+        <span>success</span><button class="secondary-button is-success" type="button">连接成功</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>

@@ -1,0 +1,10 @@
+.DS_Store
+.finesse/
+node_modules/
+*.log
+.env
+.env.*
+.radar_legion_key
+__pycache__/
+*.py[cod]
+outputs/*.zip

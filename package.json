@@ -1,0 +1,23 @@
+{
+  "name": "creative-asset-radar",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "busboy": "^1.6.0",
+    "mammoth": "^1.12.2",
+    "unpdf": "^1.8.1",
+    "word-extractor": "^1.0.4",
+    "yauzl": "^3.4.0"
+  },
+  "devDependencies": {
+    "yazl": "^3.3.1"
+  }
+}

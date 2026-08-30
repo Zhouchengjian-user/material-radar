@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0b0d0b" />
+  <meta name="description" content="用文字、图片和视频片段检索本地创意素材。" />
+  <title>素材雷达</title>
+  <link rel="stylesheet" href="./styles.css?v=6" />
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到检索区</a>
+  <svg class="icon-sprite" aria-hidden="true">
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5M12 3v12"/></symbol>
+    <symbol id="i-radar" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/><path d="M12 12 5.6 5.6"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></symbol>
+    <symbol id="i-video" viewBox="0 0 24 24"><path d="m16 13 5 3V8l-5 3"/><rect width="13" height="14" x="3" y="5" rx="2"/></symbol>
+    <symbol id="i-text" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21h-4v-.08A1.7 1.7 0 0 0 8.94 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.57 15 1.7 1.7 0 0 0 3 14H3v-4h.08A1.7 1.7 0 0 0 4.6 8.94a1.7 1.7 0 0 0-.34-1.88L4.2 7l2.83-2.83.06.06A1.7 1.7 0 0 0 8.97 4.6 1.7 1.7 0 0 0 10 3.08V3h4v.08a1.7 1.7 0 0 0 1.06 1.52 1.7 1.7 0 0 0 1.88-.34L17 4.2 19.83 7l-.06.06a1.7 1.7 0 0 0-.34 1.88A1.7 1.7 0 0 0 20.92 10H21v4h-.08A1.7 1.7 0 0 0 19.4 15Z"/></symbol>
+    <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v5M14 11v5"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.34 5.66L20 14"/><path d="M20 7v4h-4"/></symbol>
+    <symbol id="i-paperclip" viewBox="0 0 24 24"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7z"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+  </svg>
+
+  <header class="topbar">
+    <a class="brand" href="#radar" aria-label="素材雷达首页"><span class="brand-signal"><i></i><i></i><i></i></span><span class="brand-copy"><strong>素材雷达</strong><small>Creative signal finder</small></span></a>
+    <div class="top-actions">
+      <button class="task-status-button" id="taskCenterButton" type="button" aria-label="查看视频分析任务">
+        <i></i><span><strong id="taskStatusTitle">分析状态</strong><small id="taskStatusSummary">正在读取拯救者任务</small></span>
+      </button>
+      <button class="model-status" id="modelStatus" type="button" aria-label="查看模型连接状态"><i></i><span>本地检索</span></button>
+      <button class="icon-button" id="settingsButton" aria-label="模型设置"><svg><use href="#i-settings"/></svg></button>
+      <button class="primary-button" id="uploadButton"><svg><use href="#i-upload"/></svg>导入素材</button>
+      <input id="fileInput" type="file" accept="image/*,video/*,.txt,.md,.markdown,.json,.csv,.html,.htm,.srt,.vtt,.xml,.yaml,.yml,.log,.pdf,.doc,.docx,.pptx,.xlsx,.rtf,.odt,.zip" multiple hidden />
+    </div>
+  </header>
+
+  <main id="main" class="app-shell">
+    <aside class="mode-rail" aria-label="检索模式">
+      <nav class="mode-nav">
+        <button class="mode-button is-active" data-view="radar"><svg><use href="#i-radar"/></svg><span><strong>综合雷达</strong><small>搜索全部类型</small></span></button>
+        <button class="mode-button" data-view="video"><svg><use href="#i-video"/></svg><span><strong>视频搜索</strong><small>脚本与片段找镜头</small></span></button>
+        <button class="mode-button" data-view="image"><svg><use href="#i-image"/></svg><span><strong>图片搜索</strong><small>跨模态找画面</small></span></button>
+        <button class="mode-button" data-view="text"><svg><use href="#i-text"/></svg><span><strong>文字搜索</strong><small>定位文案与字幕</small></span></button>
+      </nav>
+      <section class="rail-stats" aria-label="素材统计">
+        <div class="stat-primary"><span>已入库</span><strong id="assetCount">0</strong><small>个素材</small></div>
+        <div class="stat-row"><span>视频时长</span><strong id="videoDurationCount">00:00</strong></div>
+        <div class="stat-row"><span>语义片段</span><strong id="segmentCount">0</strong></div>
+        <div class="stat-row"><span>待处理</span><strong id="pendingIndexCount">0</strong></div>
+      </section>
+      <section class="filter-group">
+        <div class="filter-title"><span>素材类型</span><button class="rail-close icon-button" aria-label="关闭筛选"><svg><use href="#i-close"/></svg></button></div>
+        <label><input type="radio" name="type" value="all" checked /><span>全部</span><em id="allCount">0</em></label>
+        <label><input type="radio" name="type" value="video" /><span>视频</span><em id="videoCount">0</em></label>
+        <label><input type="radio" name="type" value="image" /><span>图片</span><em id="imageCount">0</em></label>
+        <label><input type="radio" name="type" value="text" /><span>文字</span><em id="textCount">0</em></label>
+      </section>
+      <section class="filter-group ratio-filters">
+        <div class="filter-title"><span>画面比例</span></div>
+        <label><input type="checkbox" name="ratio" value="portrait" /><span>竖屏</span></label>
+        <label><input type="checkbox" name="ratio" value="landscape" /><span>横屏</span></label>
+        <label><input type="checkbox" name="ratio" value="square" /><span>方形</span></label>
+      </section>
+      <section class="rail-bottom">
+        <button class="secondary-button" id="retryIndexButton"><svg><use href="#i-refresh"/></svg>补齐语义索引</button>
+        <button class="text-button" id="exportButton"><svg><use href="#i-download"/></svg>导出索引清单</button>
+        <button class="local-data-status" id="persistStorageButton" type="button"><svg><use href="#i-shield"/></svg><span><strong>素材仅保存在本机</strong><small id="storageUsage">正在读取存储空间</small></span></button>
+      </section>
+    </aside>
+
+    <section class="workspace">
+      <section class="signal-stage">
+        <div class="radar-visual" aria-hidden="true"><canvas id="radarCanvas"></canvas><div class="radar-center"><svg><use href="#i-radar"/></svg></div><span class="radar-label radar-label-a">VIDEO</span><span class="radar-label radar-label-b">IMAGE</span><span class="radar-label radar-label-c">TEXT</span></div>
+        <div class="search-console">
+          <header class="view-heading"><div><p class="signal-kicker"><span></span> SIGNAL ONLINE</p><h1 id="viewTitle">综合雷达</h1><p id="viewDescription">用一句描述、一张参考图或一段视频，同时搜索图片、视频与文字素材。</p></div><button class="tool-button filter-trigger" id="filterButton"><svg><use href="#i-filter"/></svg>筛选</button></header>
+          <label class="search-field" for="searchInput"><svg><use href="#i-search"/></svg><textarea id="searchInput" rows="2" placeholder="描述你要找的画面、动作、情绪或文案" autocomplete="off"></textarea><kbd>⌘ K</kbd></label>
+          <div class="query-controls">
+            <button class="attach-button" id="referenceButton" aria-describedby="referenceGuide"><svg><use href="#i-paperclip"/></svg><span id="referenceButtonLabel">添加任意参考素材</span></button>
+            <input id="referenceInput" type="file" accept="image/*,video/*,.txt,.md,.markdown,.json,.csv,.html,.htm,.srt,.vtt,.xml,.yaml,.yml,.pdf,.doc,.docx,.pptx,.xlsx,.rtf,.odt" hidden />
+            <div id="referenceChip" class="reference-chip" hidden></div>
+            <button class="scan-button" id="searchButton"><svg><use href="#i-radar"/></svg>启动扫描</button>
+          </div>
+          <p class="reference-guide"><strong>参考匹配</strong><span id="referenceGuide">可用图片、视频片段或文字作为参照，一次匹配全部类型素材。</span></p>
+          <div class="search-status-row"><p id="resultSummary">导入素材后即可开始搜索</p><div class="view-tools"><select id="searchScopeSelect" aria-label="搜索范围"><option value="segments">片段优先</option><option value="assets">整份素材</option></select><select id="sortSelect" aria-label="结果排序"><option value="relevance">相关度</option><option value="newest">最近导入</option><option value="used">使用最多</option></select></div></div>
+          <div class="index-progress" id="indexProgress" hidden><span id="progressBar"></span><p id="progressText">正在分析素材</p><button id="cancelIndexButton" type="button"><svg><use href="#i-stop"/></svg>停止</button></div>
+        </div>
+      </section>
+
+      <section class="script-panel" id="scriptPanel" hidden>
+        <div><h2>脚本批量配镜</h2><p>每行写一个镜头意图，系统为每行返回最接近的视频片段。</p></div>
+        <textarea id="scriptInput" rows="4" placeholder="城市夜景中，人物从蓝色霓虹灯下走向镜头&#10;产品放在木桌上，暖色近景"></textarea>
+        <div class="script-footer"><span id="scriptHint">最多 10 行，每行返回 3 个候选</span><button class="secondary-button" id="matchScriptButton">匹配整段脚本</button></div>
+        <div id="scriptResults" class="script-results"></div>
+      </section>
+
+      <section class="results-head"><div><h2 id="resultsTitle">雷达结果</h2><p id="resultsHint">按匹配度排列，视频会直接定位到命中的时间段。</p></div><span class="result-mode"><svg><use href="#i-grid"/></svg><span id="resultModeLabel">全部类型</span></span></section>
+      <section id="emptyState" class="empty-state"><div class="empty-rings"><i></i><i></i><i></i><svg><use href="#i-upload"/></svg></div><h2>建立你的第一批素材信号</h2><p>图片、视频、PDF、Word、表格、演示文稿、字幕与 ZIP 都可以导入。ZIP 会拆成独立素材，原文件仍只保存在本机。</p><button class="primary-button" id="emptyUploadButton"><svg><use href="#i-upload"/></svg>选择素材文件</button></section>
+      <section id="assetGrid" class="asset-grid" hidden></section>
+      <section id="noResults" class="no-results" hidden><svg><use href="#i-search"/></svg><h2>没有命中素材</h2><p>换一个更具体的描述，或移除参考文件再试。</p></section>
+    </section>
+
+    <aside class="inspector" id="inspector" aria-label="素材详情"><div class="inspector-empty"><span class="empty-cross"></span><p>选择一个结果，查看命中时间、原文件与索引信息。</p></div></aside>
+  </main>
+
+  <button class="inspector-backdrop" id="inspectorBackdrop" aria-label="退出大窗口审片" hidden></button>
+
+  <div class="drop-zone" id="dropZone" hidden><div><svg><use href="#i-upload"/></svg><strong>松开即可导入</strong><span>支持图片、视频、PDF、Office、文字与 ZIP 压缩包</span></div></div>
+  <dialog id="settingsDialog" class="settings-dialog">
+    <form method="dialog">
+      <div class="dialog-heading"><div><h2>模型与媒体分析</h2><p>连接拯救者上的两项服务。WeMM 负责语义向量，媒体分析负责切镜、语音与画面文字。</p></div><button class="icon-button" value="cancel" aria-label="关闭"><svg><use href="#i-close"/></svg></button></div>
+
+      <section class="service-card" aria-labelledby="wemmServiceTitle">
+        <div class="service-card-heading"><span class="service-icon"><svg><use href="#i-radar"/></svg></span><div><h3 id="wemmServiceTitle">WeMM 语义模型</h3><p>图片、文字和视频片段的跨模态向量</p></div><span class="service-state" id="wemmServiceState">待测试</span></div>
+        <label>服务地址<input id="endpointInput" type="url" inputmode="url" spellcheck="false" placeholder="http://拯救者IP:8000" /></label>
+        <div class="service-test-row"><div class="connection-result" id="connectionResult" role="status">尚未测试 WeMM</div><button class="secondary-button service-test-button" type="button" id="testConnectionButton">测试 WeMM</button></div>
+      </section>
+
+      <section class="service-card" aria-labelledby="mediaServiceTitle">
+        <div class="service-card-heading"><span class="service-icon"><svg><use href="#i-video"/></svg></span><div><h3 id="mediaServiceTitle">媒体分析服务</h3><p>智能切镜、SenseVoice 语音识别与 PaddleOCR</p></div><span class="service-state" id="mediaServiceState">待测试</span></div>
+        <label>服务地址<input id="mediaEndpointInput" type="url" inputmode="url" spellcheck="false" placeholder="http://拯救者IP:8001" /></label>
+        <div class="service-test-row"><div class="connection-result" id="mediaConnectionResult" role="status">尚未测试媒体服务</div><button class="secondary-button service-test-button" type="button" id="testMediaConnectionButton">测试媒体服务</button></div>
+      </section>
+
+      <label>API 密钥 <span>两项服务共用，保存在当前浏览器</span><input id="apiKeyInput" type="password" autocomplete="off" /></label>
+      <div class="settings-grid">
+        <label>向量维度<select id="dimensionInput"><option value="256">256，推荐</option><option value="512">512</option><option value="1024">1024</option><option value="2048">2048</option></select></label>
+        <label>相邻片段重叠<select id="overlapSecondsInput"><option value="0">不重叠</option><option value="1">1 秒，推荐</option><option value="2">2 秒</option></select></label>
+      </div>
+      <div class="segment-setting"><label for="segmentSecondsInput">切镜回退长度 <strong id="segmentSecondsValue">6 秒</strong></label><input id="segmentSecondsInput" type="range" min="5" max="8" step="1" value="6" /><div><span>更精准</span><span>更快</span></div></div>
+      <p class="dialog-note">媒体分析在线时优先按真实镜头边界切分，并把台词和画面文字加入检索。检测不到转场或服务离线时，自动回退到 5 至 8 秒切片。</p>
+      <div class="dialog-actions"><button class="secondary-button" type="button" id="testAllConnectionsButton">测试全部服务</button><button class="primary-button" value="save" id="saveSettingsButton">保存并应用</button></div>
+    </form>
+  </dialog>
+  <dialog id="taskDialog" class="task-dialog">
+    <div class="task-dialog-shell">
+      <div class="dialog-heading"><div><h2>视频分析任务</h2><p>这里同时显示拯救者当前正在处理的任务，以及当前浏览器素材的完整分析状态。</p></div><button class="icon-button" id="closeTaskDialogButton" type="button" aria-label="关闭"><svg><use href="#i-close"/></svg></button></div>
+      <section class="remote-task-card" id="remoteTaskPanel" aria-live="polite"></section>
+      <section class="local-task-section">
+        <div class="section-heading-inline"><div><h3>本地素材进度</h3><p>“完整”表示镜头、语音、OCR 和向量均已写入；“部分”表示只能按画面搜索。</p></div><span id="localTaskSummary">0 个视频</span></div>
+        <div class="local-task-list" id="localTaskList"></div>
+      </section>
+      <div class="task-dialog-actions"><p id="taskLastUpdated">尚未读取任务状态</p><button class="secondary-button" id="refreshTaskStatusButton" type="button"><svg><use href="#i-refresh"/></svg>刷新状态</button></div>
+    </div>
+  </dialog>
+  <div class="toast-stack" id="toastStack" aria-live="assertive"></div>
+  <script type="module" src="./app.js?v=6"></script>
+</body>
+</html>
